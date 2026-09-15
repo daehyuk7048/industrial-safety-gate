@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>공지사항</title>
+    <style>
+        /* 기본 스타일 및 초기화 */
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
+            margin: 0; 
+            background-color: #f8f9fa; 
+        }
+        /* 상단 네비게이션 바 스타일 */
+        .navbar { 
+            background-color: #343a40; 
+            overflow: hidden; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .navbar a { 
+            float: left; 
+            display: block; 
+            color: white; 
+            text-align: center; 
+            padding: 14px 16px; 
+            text-decoration: none; 
+            font-size: 17px;
+        }
+        .navbar a:hover { 
+            background-color: #495057; 
+        }
+        /* 현재 활성화된 메뉴 스타일 */
+        .navbar .active { 
+            background-color: #007bff; 
+        }
+        /* 메인 콘텐츠 영역 스타일 */
+        .content { 
+            padding: 20px; 
+        }
+        h1 { 
+            color: #333; 
+            border-bottom: 1px solid #eee; 
+            padding-bottom: 10px; 
+            margin-top: 0;
+        }
+        /* 공지사항 아이템 스타일 */
+        .notice { 
+            background-color: white;
+            border: 1px solid #e9ecef; 
+            padding: 20px; 
+            margin-bottom: 15px; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .notice h3 { 
+            margin-top: 0; 
+            color: #212529;
+        }
+        .notice p {
+            color: #495057;
+            line-height: 1.6;
+        }
+        .notice-meta { 
+            font-size: 0.85em; 
+            color: #6c757d; 
+            text-align: right;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <!-- 네비게이션 메뉴 -->
+    <div class="navbar">
+        <a href="/qr_generator">QR 생성</a>
+        <a href="/my_work">나의 근무</a>
+        <a href="/notices" class="active">공지사항</a>
+        <a href="/logout" style="float: right;">로그아웃</a>
+    </div>
+
+    <!-- 메인 콘텐츠 -->
+    <div class="content">
+        <h1>공지사항</h1>
+        <div id="notice-container">
+            <!-- JavaScript가 여기에 공지사항 목록을 채웁니다 -->
+        </div>
+    </div>
+
+    <script>
+        // 페이지가 로드되면 자동으로 실행됩니다.
+        window.onload = function() {
+            const noticeContainer = document.getElementById('notice-container');
+            
+            // 서버에 공지사항 목록을 요청합니다.
+            fetch('/api/notices')
+                .then(response => response.json())
+                .then(notices => {
+                    // 공지사항이 없을 경우 메시지를 표시합니다.
+                    if (!notices || notices.length === 0) {
+                        noticeContainer.innerHTML = '<p>등록된 공지사항이 없습니다.</p>';
+                        return;
+                    }
+                    
+                    // 받은 공지사항 목록을 순회하며 화면에 표시합니다.
+                    notices.forEach(notice => {
+                        const noticeDiv = document.createElement('div');
+                        noticeDiv.className = 'notice';
+                        // 공지사항 내용을 HTML로 구성합니다.
+                        noticeDiv.innerHTML = `
+                            <h3>${notice.title}</h3>
+                            <p>${notice.content.replace(/\n/g, '<br>')}</p> <!-- 줄바꿈 문자를 <br> 태그로 변경 -->
+                            <p class="notice-meta">게시일: ${notice.createdAt}</p>
+                        `;
+                        noticeContainer.appendChild(noticeDiv);
+                    });
+                })
+                .catch(err => {
+                    // 통신 실패 시 에러 메시지를 표시합니다.
+                    console.error("Error fetching notices:", err);
+                    noticeContainer.innerHTML = '<p style="color: red;">공지사항을 불러오는 데 실패했습니다.</p>';
+                });
+        };
+    </script>
+</body>
+</html>
+

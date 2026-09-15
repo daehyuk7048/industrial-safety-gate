@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>관리자 대시보드</title>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
+            padding: 20px; 
+            background-color: #f8f9fa; 
+            color: #343a40;
+        }
+        
+        /* 통계 현황판 카드 스타일 */
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background-color: white;
+            padding: 25px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            border-top: 4px solid;
+        }
+        .stat-card h3 { 
+            margin-top: 0; 
+            margin-bottom: 10px;
+            font-size: 1em;
+            color: #6c757d; 
+            font-weight: 600;
+        }
+        .stat-card .number { 
+            font-size: 2.5em; 
+            font-weight: 700; 
+        }
+        .stat-card.total { border-color: #0d6efd; }
+        .stat-card.ok { border-color: #198754; }
+        .stat-card.nok { border-color: #dc3545; }
+        .stat-card.total .number { color: #0d6efd; }
+        .stat-card.ok .number { color: #198754; }
+        .stat-card.nok .number { color: #dc3545; }
+
+        /* 메인 레이아웃 컨테이너 */
+        .main-container { 
+            display: flex; 
+            gap: 20px; 
+            flex-wrap: wrap; 
+        }
+        .section { 
+            background-color: white; 
+            border: 1px solid #dee2e6; 
+            padding: 20px; 
+            border-radius: 8px; 
+            flex-basis: 100%; 
+            margin-bottom: 20px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        @media (min-width: 1200px) { 
+            .section { flex: 1; } 
+        }
+        
+        h1, h2 { 
+            border-bottom: 1px solid #eee; 
+            padding-bottom: 10px; 
+            margin-top: 0;
+        }
+        
+        form { display: flex; flex-direction: column; gap: 10px; }
+        input, select, button, textarea { 
+            padding: 10px; 
+            border-radius: 5px; 
+            border: 1px solid #ccc; 
+            font-size: 1em; 
+        }
+        button { 
+            background-color: #007bff; 
+            color: white; 
+            cursor: pointer; 
+            border: none; 
+            font-weight: bold; 
+        }
+        
+        .filter-container { margin-bottom: 20px; }
+        
+        /* 타임테이블 스타일 */
+        .log-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .log-table th, .log-table td {
+            border-bottom: 1px solid #dee2e6;
+            padding: 12px;
+            text-align: left;
+            vertical-align: middle;
+        }
+        .log-table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+        .log-table tbody tr:hover {
+            background-color: #f1f3f5;
+        }
+        .status-nok { color: #dc3545; font-weight: bold; }
+        .source-manual { background-color: #fff9db !important; }
+        
+        /* 팀 현황판 스타일 */
+        .team-card { 
+            background-color: #f1f3f5; 
+            padding: 15px; 
+            border-radius: 5px; 
+            margin-bottom: 10px; 
+        }
+        .team-card h4 { 
+            margin: 0 0 10px 0; 
+            border-bottom: 1px solid #dee2e6; 
+            padding-bottom: 5px; 
+        }
+        .team-card ul { 
+            display: flex; 
+            flex-wrap: wrap; 
+            gap: 8px; 
+            padding: 0;
+        }
+        .team-card li { 
+            background-color: #fff; 
+            padding: 4px 10px; 
+            font-size: 0.9em; 
+            border-radius: 12px; 
+            border: 1px solid #ced4da;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>관리자 대시보드</h1>
+
+    <!-- 오늘의 현황판 -->
+    <div class="stats-container">
+        <div class="stat-card total">
+            <h3>총 근무 예정</h3>
+            <span class="number" id="stats-total">0</span>
+        </div>
+        <div class="stat-card ok">
+            <h3>안전장비 완료</h3>
+            <span class="number" id="stats-ok">0</span>
+        </div>
+        <div class="stat-card nok">
+            <h3>장비 미착용</h3>
+            <span class="number" id="stats-nok">0</span>
+        </div>
+    </div>
+
+    <!-- 폼 섹션 -->
+    <div class="main-container">
+        <div class="section">
+            <h2>수동 로그 보정</h2>
+            <form id="add-log-form">
+                <input type="text" id="employeeName-add" placeholder="사원 이름" required>
+                <input type="text" id="checkInTime-add" placeholder="출근 시간 (HH:MM:SS)" required>
+                <select id="safetyCheck-add" required>
+                    <option value="양호">안전장비: 양호</option>
+                    <option value="불량">안전장비: 불량</option>
+                </select>
+                <button type="submit">보정 로그 추가</button>
+            </form>
+        </div>
+        <div class="section">
+            <h2>새 공지사항 작성</h2>
+            <form id="add-notice-form">
+                <input type="text" id="noticeTitle" placeholder="공지 제목" required>
+                <textarea id="noticeContent" rows="4" placeholder="공지 내용" required></textarea>
+                <button type="submit">공지 등록</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 데이터 표시 섹션 -->
+    <div class="main-container">
+        <div class="section" id="employee-management">
+            <h2>사원 근로 관리</h2>
+            <div class="filter-container">
+                <label for="employee-filter">사원 선택: </label>
+                <select id="employee-filter">
+                    <option value="">-- 전체 --</option>
+                </select>
+            </div>
+            <div id="log-list-container">
+                <table class="log-table">
+                    <thead>
+                        <tr>
+                            <th>날짜</th>
+                            <th>사원 이름</th>
+                            <th>출근 시간</th>
+                            <th>안전 상태</th>
+                            <th>기록 방식</th>
+                        </tr>
+                    </thead>
+                    <tbody id="log-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="section" id="team-roster">
+            <h2>오늘의 팀 현황 (N인 1조)</h2>
+            <div id="team-list-container"></div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM 요소 가져오기
+            const logTableBody = document.getElementById('log-table-body');
+            const employeeFilter = document.getElementById('employee-filter');
+            const addLogForm = document.getElementById('add-log-form');
+            const addNoticeForm = document.getElementById('add-notice-form');
+
+            // --- 데이터 로딩 함수들 ---
+            function fetchStats() { /* ... */ }
+            function fetchAllTeams() { /* ... */ }
+            function populateEmployeeFilter() { /* ... */ }
+
+            // 근무 로그 로딩 (타임테이블 UI 적용)
+            function fetchAndDisplayLogs(employeeName = '') {
+                let apiUrl = '/api/logs';
+                if (employeeName) {
+                    apiUrl += `?employeeName=${encodeURIComponent(employeeName)}`;
+                }
+                logTableBody.innerHTML = '';
+                fetch(apiUrl)
+                    .then(response => response.json())
+                    .then(logs => {
+                        if (!logs || logs.length === 0) {
+                            logTableBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">표시할 로그가 없습니다.</td></tr>';
+                        } else {
+                            logs.forEach(log => {
+                                const row = logTableBody.insertRow();
+                                if (log.source === 'manual') {
+                                    row.classList.add('source-manual');
+                                }
+                                
+                                row.insertCell(0).textContent = log.date;
+                                row.insertCell(1).textContent = log.employeeName;
+                                row.insertCell(2).textContent = log.checkInTime; // checkInTime으로 표시
+                                
+                                const statusCell = row.insertCell(3);
+                                statusCell.textContent = log.safetyCheck;
+                                if (log.safetyCheck === '불량') {
+                                    statusCell.classList.add('status-nok');
+                                }
+                                
+                                row.insertCell(4).textContent = log.source === 'manual' ? '수동 보정' : '시스템';
+                            });
+                        }
+                    });
+            }
+
+            // --- 이벤트 리스너 설정 ---
+            employeeFilter.addEventListener('change', function() { /* ... */ });
+            
+            addLogForm.addEventListener('submit', function(event) {
+                event.preventDefault();
+                const newLog = {
+                    employeeName: document.getElementById('employeeName-add').value,
+                    checkInTime: document.getElementById('checkInTime-add').value, // checkInTime으로 전송
+                    safetyCheck: document.getElementById('safetyCheck-add').value
+                };
+                fetch('/api/add_log', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newLog)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    fetchAndDisplayLogs(employeeFilter.value);
+                    fetchStats();
+                    this.reset();
+                });
+            });
+
+            addNoticeForm.addEventListener('submit', function(event) { /* ... */ });
+
+            // --- 초기 데이터 로딩 실행 ---
+            // (fetchStats, fetchAllTeams 등 모든 함수를 여기에 복사)
+
+            // 전체 복사본:
+            function fetchStats() {
+                fetch('/api/today_stats')
+                    .then(response => response.json())
+                    .then(stats => {
+                        document.getElementById('stats-total').textContent = stats.totalScheduled || 0;
+                        document.getElementById('stats-ok').textContent = stats.safetyOk || 0;
+                        document.getElementById('stats-nok').textContent = stats.safetyNok || 0;
+                    });
+            }
+
+            function fetchAllTeams() {
+                const container = document.getElementById('team-list-container');
+                container.innerHTML = '';
+                fetch('/api/all_teams_today')
+                    .then(response => response.json())
+                    .then(teams => {
+                        if (Object.keys(teams).length === 0) {
+                            container.innerHTML = '<p>오늘 배정된 팀이 없습니다.</p>';
+                            return;
+                        }
+                        for (const teamName in teams) {
+                            const members = teams[teamName];
+                            const teamCard = document.createElement('div');
+                            teamCard.className = 'team-card';
+                            let membersHtml = '<ul>';
+                            members.forEach(name => { membersHtml += `<li>${name}</li>`; });
+                            membersHtml += '</ul>';
+                            teamCard.innerHTML = `<h4>${teamName}</h4>${membersHtml}`;
+                            container.appendChild(teamCard);
+                        }
+                    });
+            }
+            
+            function populateEmployeeFilter() {
+                fetch('/api/employees')
+                    .then(response => response.json())
+                    .then(employees => {
+                        employees.forEach(name => {
+                            const option = document.createElement('option');
+                            option.value = name;
+                            option.textContent = name;
+                            employeeFilter.appendChild(option);
+                        });
+                    });
+            }
+
+            employeeFilter.addEventListener('change', function() {
+                fetchAndDisplayLogs(this.value);
+            });
+
+            addNoticeForm.addEventListener('submit', function(event) {
+                event.preventDefault();
+                const notice = {
+                    title: document.getElementById('noticeTitle').value,
+                    content: document.getElementById('noticeContent').value
+                };
+                fetch('/api/add_notice', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(notice)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    alert('공지사항이 성공적으로 등록되었습니다.');
+                    this.reset();
+                });
+            });
+
+            fetchStats();
+            fetchAllTeams();
+            populateEmployeeFilter();
+            fetchAndDisplayLogs();
+        });
+    </script>
+</body>
+</html>
+

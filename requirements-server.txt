@@ -1,0 +1,3 @@
+# Laptop — Flask 관리 서버 (server/server.py)
+flask
+flask-cors

@@ -1,0 +1,11 @@
+# Raspberry Pi 5 (Raspberry Pi OS Bookworm, Python 3.11)
+# picamera2 / libcamera / OpenCV 는 apt 설치를 권장합니다:
+#   sudo apt install -y python3-picamera2 python3-opencv
+numpy<2          # ultralytics / opencv ABI 충돌 예방 (당시 1.26.4 사용)
+pyserial         # Arduino 시리얼
+requests         # Flask API 호출
+RPi.GPIO         # 릴레이 / LED
+mfrc522          # RC522 RFID (--rfid mfrc522)
+
+# 아래는 Pi 온디바이스 추론(raspberry_pi/YOLO.py)에만 필요
+# ultralytics

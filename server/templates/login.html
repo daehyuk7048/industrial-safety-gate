@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>사원 로그인</title>
+    <style>
+        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #f4f4f9; }
+        .login-container { text-align: center; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        h1 { margin-bottom: 20px; }
+        input { padding: 10px; width: 220px; border-radius: 5px; border: 1px solid #ccc; margin-bottom: 15px; }
+        button { padding: 10px 20px; width: 100%; border-radius: 5px; border: none; background-color: #007bff; color: white; cursor: pointer; }
+        #error-message { color: red; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h1>사원 로그인</h1>
+        <form id="login-form">
+            <input type="text" id="employeeName" placeholder="이름" required><br>
+            <input type="text" id="birthDate" placeholder="생년월일 6자리 (예: 900101)" required><br>
+            <button type="submit">로그인</button>
+        </form>
+        <p id="error-message"></p>
+    </div>
+    <script>
+        document.getElementById('login-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const name = document.getElementById('employeeName').value;
+            const birth = document.getElementById('birthDate').value;
+            const errorMessage = document.getElementById('error-message');
+
+            fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ employeeName: name, birthDate: birth })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // 로그인 성공 시, 사원 메인 페이지로 이동
+                    window.location.href = '/employee';
+                } else {
+                    errorMessage.textContent = data.message || '로그인에 실패했습니다.';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                errorMessage.textContent = '서버 오류가 발생했습니다.';
+            });
+        });
+    </script>
+</body>
+</html>

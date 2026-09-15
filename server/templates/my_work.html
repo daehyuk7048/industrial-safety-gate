@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>나의 근무</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; margin: 0; background-color: #f8f9fa; }
+        .navbar { background-color: #343a40; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .navbar a { float: left; display: block; color: white; text-align: center; padding: 14px 16px; text-decoration: none; font-size: 17px; }
+        .navbar a:hover { background-color: #495057; }
+        .navbar .active { background-color: #007bff; }
+        .content { padding: 20px; }
+        .section { margin-bottom: 30px; background-color: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        h1, h2 { color: #333; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-top: 0;}
+        ul { list-style-type: none; padding: 0; }
+        li { border: 1px solid #eee; padding: 12px; margin-bottom: 8px; border-radius: 5px; }
+        .log-system { background-color: #f9f9f9; }
+        .log-manual { background-color: #fffbe6; border-left: 4px solid #f59e0b; }
+        .team-box { background-color: #e7f5ff; border-left: 4px solid #1c7ed6; padding: 15px; border-radius: 5px; }
+        .team-box ul { display: flex; flex-wrap: wrap; gap: 10px; }
+        .team-box li { background-color: white; border: 1px solid #1c7ed6; color: #1c7ed6; padding: 5px 10px; border-radius: 15px; }
+        #calendar { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        #calendar th, #calendar td { border: 1px solid #ddd; padding: 15px; text-align: center; }
+        #calendar th { background-color: #f2f2f2; }
+        #calendar td .day-number { font-size: 0.9em; color: #999; }
+        .is-work-day { background-color: #d0ebff; font-weight: bold; }
+        .team-on-calendar { font-size: 0.8em; color: #0056b3; display: block; margin-top: 5px; }
+    </style>
+</head>
+<body>
+    <!-- ▼▼▼ 네비게이션 메뉴 바 추가 ▼▼▼ -->
+    <div class="navbar">
+        <a href="/qr_generator">QR 생성</a>
+        <a href="/my_work" class="active">나의 근무</a>
+        <a href="/notices">공지사항</a>
+        <a href="/logout" style="float: right;">로그아웃</a>
+    </div>
+    <!-- ▲▲▲ -->
+
+    <div class="content">
+        <h1>나의 근무 페이지</h1>
+        <div class="section" id="team-section"><h2>오늘의 팀 (n인 1조)</h2></div>
+        <div class="section">
+            <h2>근무 일정 캘린더</h2>
+            <div id="calendar-container">
+                <h3 id="calendar-title"></h3>
+                <table id="calendar"></table>
+            </div>
+        </div>
+        <div class="section">
+            <h2>나의 근무 기록</h2>
+            <div id="work-log-container"></div>
+        </div>
+    </div>
+
+    <script>
+        window.onload = function() {
+            fetchTeamInfo();
+            fetchAndDisplayCalendar();
+            fetchMyLogs();
+        };
+
+        function fetchTeamInfo() {
+            const teamContainer = document.getElementById('team-section');
+            fetch('/api/my_team')
+                .then(response => response.json())
+                .then(data => {
+                    teamContainer.innerHTML = '<h2>오늘의 팀 (n인 1조)</h2>'; // Clear previous
+                    if (data.teammates && data.teammates.length > 0) {
+                        const teamBox = document.createElement('div');
+                        teamBox.className = 'team-box';
+                        let teammatesHtml = '<ul>';
+                        data.teammates.forEach(name => { teammatesHtml += `<li>${name}</li>`; });
+                        teammatesHtml += '</ul>';
+                        teamBox.innerHTML = `<h3>${data.teamName}</h3>${teammatesHtml}`;
+                        teamContainer.appendChild(teamBox);
+                    } else {
+                        teamContainer.innerHTML += '<p>오늘 배정된 팀이 없습니다.</p>';
+                    }
+                });
+        }
+
+        function fetchAndDisplayCalendar() {
+            fetch('/api/my_schedule')
+                .then(response => response.json())
+                .then(schedules => {
+                    const calendar = document.getElementById('calendar');
+                    const calendarTitle = document.getElementById('calendar-title');
+                    const today = new Date();
+                    const month = today.getMonth();
+                    const year = today.getFullYear();
+                    calendarTitle.textContent = `${year}년 ${month + 1}월`;
+                    let date = 1;
+                    const firstDay = new Date(year, month).getDay();
+                    const daysInMonth = 32 - new Date(year, month, 32).getDate();
+                    let thead = '<thead><tr><th>일</th><th>월</th><th>화</th><th>수</th><th>목</th><th>금</th><th>토</th></tr></thead>';
+                    let tbody = '<tbody>';
+                    for (let i = 0; i < 6; i++) {
+                        tbody += '<tr>';
+                        for (let j = 0; j < 7; j++) {
+                            if (i === 0 && j < firstDay) { tbody += '<td></td>'; } 
+                            else if (date > daysInMonth) { break; } 
+                            else {
+                                const currentDateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
+                                let cellClass = '', teamInfo = '';
+                                if (schedules[currentDateStr]) {
+                                    cellClass = 'is-work-day';
+                                    teamInfo = `<span class="team-on-calendar">${schedules[currentDateStr]}</span>`;
+                                }
+                                tbody += `<td class="${cellClass}"><span class="day-number">${date}</span>${teamInfo}</td>`;
+                                date++;
+                            }
+                        }
+                        tbody += '</tr>';
+                        if (date > daysInMonth) break;
+                    }
+                    tbody += '</tbody>';
+                    calendar.innerHTML = thead + tbody;
+                });
+        }
+
+        function fetchMyLogs() {
+            const logContainer = document.getElementById('work-log-container');
+            fetch('/api/my_logs')
+                .then(response => response.json())
+                .then(logs => {
+                    logContainer.innerHTML = '';
+                    if (!logs || logs.length === 0) {
+                        logContainer.innerHTML = '<p>근무 기록이 없습니다.</p>';
+                        return;
+                    }
+                    const logList = document.createElement('ul');
+                    logs.forEach(log => {
+                        const listItem = document.createElement('li');
+                        if (log.source === 'manual') {
+                            listItem.className = 'log-manual';
+                            listItem.textContent = `[${log.date}] ${log.workHours}시간 근무 / 안전장비: ${log.safetyCheck} (수동 보정)`;
+                        } else {
+                            listItem.className = 'log-system';
+                            listItem.textContent = `[${log.date}] ${log.workHours}시간 근무 / 안전장비: ${log.safetyCheck}`;
+                        }
+                        if (log.safetyCheck === '불량') { listItem.style.color = 'red'; }
+                        logList.appendChild(listItem);
+                    });
+                    logContainer.appendChild(logList);
+                });
+        }
+    </script>
+</body>
+</html>
+
